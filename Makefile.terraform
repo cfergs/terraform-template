@@ -1,0 +1,7 @@
+# Terraform Actions
+
+terraform-format:
+	./hooks/terraform-fmt.sh
+
+terraform-validate:
+	./hooks/terraform-validate.sh

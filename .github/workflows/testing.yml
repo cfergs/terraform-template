@@ -1,0 +1,46 @@
+name: Tests
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions: read-all
+
+jobs:
+  test:
+    name: Run Terraform Tests
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+      - uses: terraform-linters/setup-tflint@v3
+        with:
+          tflint_version: latest
+
+      - name: Terraform Init
+        run: terraform init
+      - name: Terraform Validate
+        run: terraform validate -no-color
+
+      - name: Init TFLint
+        run: tflint --init
+      - name: TFLint
+        id: tflint
+        run: tflint --recursive --module -f compact
+
+      - run: echo ${{ steps.tflint.outputs.stdout }}
+      - run: echo ${{ steps.tflint.outputs.stderr }}
+      - run: echo ${{ steps.tflint.outputs.exitcode }}
+
+      - name: Checkov GitHub Action
+        uses: bridgecrewio/checkov-action@v12
+        if: success() || failure() # run if tflint fails
+        with:
+          output_format: cli
+          output_file_path: console
+          quiet: true
